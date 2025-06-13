@@ -1,0 +1,52 @@
+pipeline {
+    agent any
+
+    environment {
+        IMAGE_NAME = 'virajkanerkar/vote'
+        IMAGE_TAG = 'v4'
+        
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                git url: 'https://github.com/viraj2018/demo.git', branch: 'main', credentialsId: 'github-creds'
+            }
+        }
+
+        stage('Build Image') {
+            steps {
+                sh 'sudo docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .'
+            }
+        }
+        
+        stage('Push Image') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                    sh """
+                        echo "$DOCKER_PASS" | sudo docker login -u "$DOCKER_USER" --password-stdin
+                        sudo docker push ${IMAGE_NAME}:${IMAGE_TAG}
+                    """
+                }
+            }
+        }
+        stage('Run Docker Image'){
+            steps{
+              sh '''
+                    docker stop demoapp || true
+                    docker rm demoapp || true
+                    docker run -d --name demoapp -p 8081:8081 $IMAGE_NAME:$IMAGE_TAG
+                '''
+            }
+        
+        }
+        
+        
+        
+        }
+        
+        }
+
+
+    
+
